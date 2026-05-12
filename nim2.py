@@ -44,17 +44,21 @@ def resetar_estado():
     st.rerun()
 
 def main():
-    st.title("🎮 Jogo do Nim - O Último Perde")
+    st.title("🎮 Jogo do Nim - O Último Ganha")
     st.sidebar.markdown("""
     ### 📜 Regras do Jogo
 
     🎯 O Jogo do Nim é uma disputa de raciocínio e estratégia, jogada por duas pessoas ou por uma pessoa contra o 🤖 Bot.
 
-    🔁 Os participantes se revezam retirando bolinhas de uma pilha comum.
+    🔁 Os participantes se revezam retirando bolinhas de uma das pilhas.
     
-    👉 A cada turno, é permitido retirar entre 1 e o número máximo de bolinhas definido no início.
+    👉 A cada turno, é permitido retirar entre 1 e o número total de bolinhas de uma pilha específica.
     
-    ❌ Perde quem for forçado a retirar a última bolinha.
+    👉 Escolha **uma das três pilhas** no seu turno.
+
+    👉 Retire **quantas bolinhas quiser** (pelo menos uma) daquela pilha.
+    
+    🎉 Ganha quem retirar a última bolinha.
     
     🧠 No modo contra o Bot, você escolhe o nível de dificuldade: Fácil 😄, Médio 😐 ou Difícil 😈.
     
@@ -62,11 +66,10 @@ def main():
     """)
     if st.button("🔄 Resetar Tudo"):
         resetar_estado()
+    # Inicialização do estado
+    if 'pilhas' not in st.session_state:
+        st.session_state.pilhas = [5, 3, 1]
 
-    if 'total_bolinhas' not in st.session_state:
-        st.session_state.total_bolinhas = 0
-    if 'max_retirada' not in st.session_state:
-        st.session_state.max_retirada = 0
     if 'jogador_atual' not in st.session_state:
         st.session_state.jogador_atual = 1
     if 'nome_jogador1' not in st.session_state:
@@ -87,13 +90,26 @@ def main():
         st.session_state.aguardando_escolha_inicial = False
 
     if not st.session_state.jogo_iniciado:
-        st.header("Configuração do Jogo")
+        st.header("Configuração das Pilhas")
+        colA, colB, colC = st.columns(3)
+        with colA:
+            p1 = st.number_input("Pilha 1 (Esquerda):", 0, 20, 5)
+        with colB:
+            p2 = st.number_input("Pilha 2 (Meio):", 0, 20, 3)
+        with colC:
+            p3 = st.number_input("Pilha 3 (Direita):", 0, 20, 1)
+        
+        st.session_state.pilhas = [p1, p2, p3]
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.session_state.total_bolinhas = st.number_input("Quantas bolinhas terá a pilha inicial?", min_value=2, max_value=100, value=27)
-        with col2:
-            st.session_state.max_retirada = st.number_input("Máximo de bolinhas por jogada:", min_value=1, max_value=10, value=4)
+        # Visualização prévia
+        st.write("---")
+        v_col1, v_col2, v_col3 = st.columns(3)
+
+        for i, col in enumerate([v_col1, v_col2, v_col3]):
+            with col:
+                st.markdown(f"**Pilha {i+1}**")
+                for _ in range(st.session_state.pilhas[i]):
+                    st.write("🔴" if i % 2 == 0 else "🔵")
 
         st.session_state.modo = st.radio("Modo de Jogo:", options=["Um Jogador vs Bot", "Dois Jogadores"], index=0, horizontal=True)
 
@@ -103,6 +119,7 @@ def main():
             st.session_state.dificuldade = escolher_dificuldade()
 
             st.session_state.cara_ou_coroa = st.radio(f"{st.session_state.nome_jogador1}, escolha cara ou coroa:", options=["Cara", "Coroa"], horizontal=True)
+            
             if st.button("Jogar a moeda!"):
                 st.session_state.resultado_sorteio = random.choice(["Cara", "Coroa"])
                 st.session_state.moeda_sorteada = True
