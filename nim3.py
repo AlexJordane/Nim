@@ -58,12 +58,24 @@ def resetar_estado():
 
 def main():
     st.title("🎮 Jogo do Nim - O Último Perde")
-    
     st.sidebar.markdown("""
     ### 📜 Regras do Jogo
-    🎯 Retire bolinhas de **uma única pilha** por vez.
-    👉 Retire quantas quiser daquela pilha (mínimo 1).
-    ❌ **O último a retirar perde!** (Modo Misère)
+
+    🎯 O Jogo do Nim é uma disputa de raciocínio e estratégia, jogada por duas pessoas ou por uma pessoa contra o 🤖 Bot.
+
+    🔁 Os participantes se revezam retirando bolinhas de uma das pilhas.
+    
+    👉 A cada turno, é permitido retirar entre 1 e o número total de bolinhas de uma pilha específica.
+    
+    👉 Escolha **uma das três pilhas** no seu turno.
+
+    👉 Retire **quantas bolinhas quiser** (pelo menos uma) daquela pilha.
+    
+    ❌ Perde quem retirar a última bolinha.
+    
+    🧠 No modo contra o Bot, você escolhe o nível de dificuldade: Fácil 😄, Médio 😐 ou Difícil 😈.
+    
+    🎲 Um sorteio inicial (cara ou coroa) define quem começa a partida.
     """)
 
     if 'pilhas' not in st.session_state:

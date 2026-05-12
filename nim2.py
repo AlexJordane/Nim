@@ -173,6 +173,17 @@ def main():
     else:
         st.header("Partida em Andamento")
 
+        # Visualização das bolinhas
+        cols = st.columns(3)
+        for i in range(3):
+            with cols[i]:
+                st.subheader(f"Pilha {i+1}")
+                qtd = st.session_state.pilhas[i]
+                for _ in range(qtd):
+                    st.write("🔴" if i % 2 == 0 else "🔵")
+                st.write(f"({qtd} bolinhas)")
+
+
         if 'msg_ultima_jogada_bot' in st.session_state:
             st.info(st.session_state.msg_ultima_jogada_bot)
             del st.session_state.msg_ultima_jogada_bot
