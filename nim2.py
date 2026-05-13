@@ -2,6 +2,7 @@ import streamlit as st
 import random
 
 def escolher_dificuldade():
+    """Interface para seleção do nível de desafio do Bot."""
     st.subheader("Nível de Dificuldade do Bot")
     dificuldade = st.radio(
         "Escolha o nível:",
@@ -11,233 +12,148 @@ def escolher_dificuldade():
     )
     return ["Fácil", "Médio", "Difícil"].index(dificuldade) + 1
 
-def jogada_bot(total_bolinhas, max_retirada, nome_bot, dificuldade):
-    if total_bolinhas <= max_retirada + 1:
-        jogada = total_bolinhas - 1 if total_bolinhas > 1 else 1
-        st.write(f"**{nome_bot} retira {jogada} bolinhas.**")
-        return jogada
+def calcular_movimento_otimo(pilhas):
+    """Calcula o movimento ideal para o Nim convencional (o último ganha)."""
+    nim_sum = pilhas[0] ^ pilhas[1] ^ pilhas[2]
+    
+    if nim_sum != 0:
+        for i, p in enumerate(pilhas):
+            alvo = p ^ nim_sum
+            if alvo < p:
+                return i, p - alvo
+                
+    pilhas_validas = [i for i, p in enumerate(pilhas) if p > 0]
+    if not pilhas_validas:
+        return 0, 0
+        
+    idx = random.choice(pilhas_validas)
+    return idx, random.randint(1, pilhas[idx])
 
-    alvo = 1
-    while alvo <= total_bolinhas:
-        alvo += max_retirada + 1
-    jogada_otima = total_bolinhas - (alvo - (max_retirada + 1))
-
-    jogada_otima_valida = (1 <= jogada_otima <= max_retirada)
-
-    if jogada_otima_valida:
-        if dificuldade == 1:
-            usar_otima = random.random() < 0.3
-        elif dificuldade == 2:
-            usar_otima = random.random() < 0.6
-        else:
-            usar_otima = True
+def jogada_bot(pilhas, nome_bot, dificuldade):
+    """Gerencia a decisão do Bot baseada na dificuldade."""
+    if dificuldade == 1:
+        usar_otimo = random.random() < 0.2
+    elif dificuldade == 2:
+        usar_otimo = random.random() < 0.6
     else:
-        usar_otima = False
+        usar_otimo = True
 
-    jogada = jogada_otima if usar_otima else random.randint(1, min(max_retirada, total_bolinhas))
-    st.write(f"**{nome_bot} retira {jogada} bolinhas.**")
-    return jogada
+    if usar_otimo:
+        idx, qtd = calcular_movimento_otimo(pilhas)
+    else:
+        pilhas_validas = [i for i, p in enumerate(pilhas) if p > 0]
+        idx = random.choice(pilhas_validas)
+        qtd = random.randint(1, pilhas[idx])
+
+    return idx, qtd
 
 def resetar_estado():
+    """Reinicia o jogo."""
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
 
 def main():
     st.title("🎮 Jogo do Nim - O Último Ganha")
-    st.sidebar.markdown("""
-    ### 📜 Regras do Jogo
-
-    🎯 O Jogo do Nim é uma disputa de raciocínio e estratégia, jogada por duas pessoas ou por uma pessoa contra o 🤖 Bot.
-
-    🔁 Os participantes se revezam retirando bolinhas de uma das pilhas.
     
-    👉 A cada turno, é permitido retirar entre 1 e o número total de bolinhas de uma pilha específica.
-    
-    👉 Escolha **uma das três pilhas** no seu turno.
-
-    👉 Retire **quantas bolinhas quiser** (pelo menos uma) daquela pilha.
-    
-    🎉 Ganha quem retirar a última bolinha.
-    
-    🧠 No modo contra o Bot, você escolhe o nível de dificuldade: Fácil 😄, Médio 😐 ou Difícil 😈.
-    
-    🎲 Um sorteio inicial (cara ou coroa) define quem começa a partida.
-    """)
-    if st.button("🔄 Resetar Tudo"):
-        resetar_estado()
-    # Inicialização do estado
     if 'pilhas' not in st.session_state:
         st.session_state.pilhas = [5, 3, 1]
-
-    if 'jogador_atual' not in st.session_state:
-        st.session_state.jogador_atual = 1
-    if 'nome_jogador1' not in st.session_state:
-        st.session_state.nome_jogador1 = ""
-    if 'nome_jogador2' not in st.session_state:
-        st.session_state.nome_jogador2 = ""
-    if 'modo' not in st.session_state:
-        st.session_state.modo = 0
-    if 'dificuldade' not in st.session_state:
-        st.session_state.dificuldade = 0
     if 'jogo_iniciado' not in st.session_state:
         st.session_state.jogo_iniciado = False
-    if 'vez_bot' not in st.session_state:
-        st.session_state.vez_bot = False
     if 'moeda_sorteada' not in st.session_state:
         st.session_state.moeda_sorteada = False
-    if 'aguardando_escolha_inicial' not in st.session_state:
-        st.session_state.aguardando_escolha_inicial = False
 
     if not st.session_state.jogo_iniciado:
-        st.header("Configuração das Pilhas")
+        st.header("⚙️ Configuração")
         colA, colB, colC = st.columns(3)
-        with colA:
-            p1 = st.number_input("Pilha 1 (Esquerda):", 0, 20, 5)
-        with colB:
-            p2 = st.number_input("Pilha 2 (Meio):", 0, 20, 3)
-        with colC:
-            p3 = st.number_input("Pilha 3 (Direita):", 0, 20, 1)
+        with colA: p1 = st.number_input("Pilha 1:", 0, 20, 5)
+        with colB: p2 = st.number_input("Pilha 2:", 0, 20, 3)
+        with colC: p3 = st.number_input("Pilha 3:", 0, 20, 1)
         
         st.session_state.pilhas = [p1, p2, p3]
+        st.session_state.modo = st.radio("Modo:", ["Contra o Bot", "Dois Jogadores"], horizontal=True)
 
-        # Visualização prévia
-        st.write("---")
-        v_col1, v_col2, v_col3 = st.columns(3)
-
-        for i, col in enumerate([v_col1, v_col2, v_col3]):
-            with col:
-                st.markdown(f"**Pilha {i+1}**")
-                for _ in range(st.session_state.pilhas[i]):
-                    st.write("🔴" if i % 2 == 0 else "🔵")
-
-        st.session_state.modo = st.radio("Modo de Jogo:", options=["Um Jogador vs Bot", "Dois Jogadores"], index=0, horizontal=True)
-
-        if st.session_state.modo == "Um Jogador vs Bot":
-            st.session_state.nome_jogador1 = st.text_input("Digite seu nome:", "Jogador")
+        if st.session_state.modo == "Contra o Bot":
+            st.session_state.nome_jogador1 = st.text_input("Seu nome:", "Jogador")
             st.session_state.nome_jogador2 = "Bot"
             st.session_state.dificuldade = escolher_dificuldade()
 
-            st.session_state.cara_ou_coroa = st.radio(f"{st.session_state.nome_jogador1}, escolha cara ou coroa:", options=["Cara", "Coroa"], horizontal=True)
-            
-            if st.button("Jogar a moeda!"):
-                st.session_state.resultado_sorteio = random.choice(["Cara", "Coroa"])
+            st.subheader("🎲 Sorteio")
+            escolha = st.radio("Sua face:", ["Cara", "Coroa"], horizontal=True)
+            if st.button("Lançar Moeda"):
+                res = random.choice(["Cara", "Coroa"])
+                st.session_state.resultado_moeda = res
+                st.session_state.ganhou_sorteio = (escolha == res)
                 st.session_state.moeda_sorteada = True
-                st.rerun()
 
-            if st.session_state.moeda_sorteada and not st.session_state.jogo_iniciado:
-                resultado = st.session_state.resultado_sorteio
-                st.subheader(f"Resultado da moeda: **{resultado}**")
-
-                if st.session_state.cara_ou_coroa == resultado:
-                    st.success("Você ganhou o sorteio!")
-
-                    if not st.session_state.aguardando_escolha_inicial:
-                        st.session_state.aguardando_escolha_inicial = True
-
-                    iniciante = st.radio("Quem deve começar?", options=[st.session_state.nome_jogador1, st.session_state.nome_jogador2], horizontal=True, key='iniciante_escolha')
-
-                    if st.button("Começar Jogo"):
-                        st.session_state.jogador_atual = 1 if iniciante == st.session_state.nome_jogador1 else 2
-                        st.session_state.vez_bot = (st.session_state.jogador_atual == 2)
+            if st.session_state.moeda_sorteada:
+                st.info(f"Resultado: {st.session_state.resultado_moeda}")
+                if st.session_state.ganhou_sorteio:
+                    st.success("Você ganhou! Escolha quem começa:")
+                    quem = st.radio("Iniciante:", [st.session_state.nome_jogador1, "Bot"], horizontal=True)
+                    if st.button("Iniciar"):
+                        st.session_state.jogador_atual = 1 if quem == st.session_state.nome_jogador1 else 2
                         st.session_state.jogo_iniciado = True
                         st.rerun()
-
                 else:
-                    st.warning("O Bot ganhou o sorteio!")
-
-                    if not st.session_state.aguardando_escolha_inicial:
-                        if (st.session_state.total_bolinhas - 1) % (st.session_state.max_retirada + 1) == 0:
-                            st.info(f"O Bot escolhe que {st.session_state.nome_jogador1} começa.")
-                            st.session_state.jogador_atual = 1
-                        else:
-                            st.info("O Bot escolhe começar!")
-                            st.session_state.jogador_atual = 2
-
-                        st.session_state.vez_bot = (st.session_state.jogador_atual == 2)
-                        st.session_state.aguardando_escolha_inicial = True
-
-                    if st.button("Começar Jogo"):
+                    st.error("Bot ganhou!")
+                    st.session_state.jogador_atual = 2
+                    if st.button("Começar"):
                         st.session_state.jogo_iniciado = True
                         st.rerun()
-
         else:
-            st.session_state.nome_jogador1 = st.text_input("Nome do Jogador 1:", "Jogador 1")
-            st.session_state.nome_jogador2 = st.text_input("Nome do Jogador 2:", "Jogador 2")
-
             if st.button("Iniciar Jogo"):
                 st.session_state.jogador_atual = 1
                 st.session_state.jogo_iniciado = True
                 st.rerun()
-
     else:
-        st.header("Partida em Andamento")
-
-        # Visualização das bolinhas
+        st.header("🎮 Partida em Andamento")
         cols = st.columns(3)
+        icones = ["🔴", "🔵", "🟢"]
         for i in range(3):
             with cols[i]:
                 st.subheader(f"Pilha {i+1}")
                 qtd = st.session_state.pilhas[i]
-                for _ in range(qtd):
-                    st.write("🔴" if i % 2 == 0 else "🔵")
-                st.write(f"({qtd} bolinhas)")
+                st.write((icones[i] + " ") * qtd if qtd > 0 else "*(Vazia)*")
+                st.write(f"Contagem: **{qtd}**")
 
-
-        if 'msg_ultima_jogada_bot' in st.session_state:
-            st.info(st.session_state.msg_ultima_jogada_bot)
-            del st.session_state.msg_ultima_jogada_bot
-
-        bolinhas_visual = ''.join(['🔴 ' if i % 2 == 0 else '🔵 ' for i in range(st.session_state.total_bolinhas)])
-        st.subheader(f"Bolinhas restantes: ")
-        st.subheader(f"{bolinhas_visual}")
-        st.subheader(f"{st.session_state.total_bolinhas} bolinhas!")
-
-        if st.session_state.total_bolinhas <= 1:
-            perdedor = st.session_state.nome_jogador2 if st.session_state.jogador_atual == 2 else st.session_state.nome_jogador1
+        if sum(st.session_state.pilhas) == 0:
             vencedor = st.session_state.nome_jogador1 if st.session_state.jogador_atual == 2 else st.session_state.nome_jogador2
-            st.error(f"{perdedor} retirou a última bolinha e PERDEU!")
-            st.success(f"🏆 {vencedor} venceu! Parabéns!")
-            if st.button("Jogar Novamente"):
-                st.session_state.jogo_iniciado = False
-                resetar_estado()
-                st.rerun()
+            st.balloons()
+            st.success(f"🏆 {vencedor} venceu!")
+            if st.button("Reiniciar"): resetar_estado()
             return
 
-        if st.session_state.modo == "Um Jogador vs Bot" and st.session_state.jogador_atual == 2:
-            if st.session_state.vez_bot:
-                jogada = jogada_bot(
-                    st.session_state.total_bolinhas,
-                    st.session_state.max_retirada,
-                    st.session_state.nome_jogador2,
-                    st.session_state.dificuldade
-                )
-                st.session_state.total_bolinhas -= jogada
-                st.session_state.jogador_atual = 1
-                st.session_state.vez_bot = False
-                st.session_state.msg_ultima_jogada_bot = f"O Bot retirou {jogada} bolinhas!"
-                st.rerun()
-            else:
-                st.session_state.vez_bot = True
-                st.rerun()
-
-        else:
-            jogador_atual_nome = st.session_state.nome_jogador1 if st.session_state.jogador_atual == 1 else st.session_state.nome_jogador2
-            st.subheader(f"Vez de: {jogador_atual_nome}")
-
-            max_permitido = min(st.session_state.max_retirada, st.session_state.total_bolinhas)
-            with st.form("jogada_form"):
-                jogada = st.number_input(f"{jogador_atual_nome}, quantas bolinhas deseja retirar (1-{max_permitido})?", min_value=1, max_value=max_permitido, value=1)
-                submit = st.form_submit_button("Realizar Jogada")
-                if submit:
-                    st.session_state.total_bolinhas -= jogada
-                    st.session_state.jogador_atual = 3 - st.session_state.jogador_atual
-                    st.rerun()
-
-        if st.button("Reiniciar Jogo"):
-            st.session_state.jogo_iniciado = False
-            resetar_estado()
+        if st.session_state.modo == "Contra o Bot" and st.session_state.jogador_atual == 2:
+            st.write("🤖 Bot pensando...")
+            idx, qtd = jogada_bot(st.session_state.pilhas, "Bot", st.session_state.dificuldade)
+            st.session_state.pilhas[idx] -= qtd
+            st.session_state.jogador_atual = 1
             st.rerun()
+        else:
+            nome = st.session_state.nome_jogador1 if st.session_state.jogador_atual == 1 else st.session_state.nome_jogador2
+            st.subheader(f"Vez de: {nome}")
+            
+            with st.form("jogada"):
+                # Permitimos selecionar qualquer pilha, mesmo vazia, para validar depois
+                escolha = st.selectbox("Selecione a pilha:", [1, 2, 3])
+                # Removemos o limite do number_input para permitir a digitação livre
+                quantidade = st.number_input("Quantas bolinhas?", min_value=1, step=1)
+                
+                confirmar = st.form_submit_button("Confirmar Jogada")
+                
+                if confirmar:
+                    pilha_index = escolha - 1
+                    disponivel = st.session_state.pilhas[pilha_index]
+                    
+                    if quantidade > disponivel:
+                        st.error(f"⚠️ Jogada inválida! Você tentou retirar {quantidade} bolinhas, mas a Pilha {escolha} só tem {disponivel}.")
+                    else:
+                        st.session_state.pilhas[pilha_index] -= quantidade
+                        st.session_state.jogador_atual = 3 - st.session_state.jogador_atual
+                        st.rerun()
+
+        if st.button("Sair"): resetar_estado()
 
 if __name__ == "__main__":
     main()

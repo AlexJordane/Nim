@@ -75,7 +75,7 @@ def main():
     
     🎲 Um sorteio inicial define quem começa a partida.
     """)
-
+ 
     # Inicialização das variáveis de controle
     if 'pilhas' not in st.session_state:
         st.session_state.pilhas = [5, 3, 1]
@@ -146,6 +146,13 @@ def main():
                 st.rerun()
 
     else:
+        
+        # Colocando o botão de reinício na barra lateral
+        with st.sidebar:
+            st.divider() # Uma linha para separar das regras
+            if st.button("🏁 Encerrar e Reiniciar", use_container_width=True):
+                resetar_estado()
+                
         st.header("🎮 Partida em Andamento")
         
         # Exibição visual das pilhas em colunas
@@ -166,9 +173,16 @@ def main():
             # o vencedor é quem fez o movimento anterior.
             vencedor_idx = 3 - st.session_state.jogador_atual
             vencedor_nome = st.session_state.nome_jogador1 if vencedor_idx == 1 else st.session_state.nome_jogador2
-            
-            st.balloons()
-            st.success(f"🏆 Parabéns! **{vencedor_nome}** retirou a última bolinha e venceu a partida!")
+            vencedor_foi_o_bot = (st.session_state.jogador_atual == 1 and st.session_state.modo == "Contra o Bot")
+
+            if vencedor_foi_o_bot:
+                st.snow()
+                st.error("💀 O Bot venceu! Melhor sorte na próxima vez...")
+
+            else:
+                st.balloons()
+                st.success(f"🏆 Parabéns! **{vencedor_nome}** retirou a última bolinha e venceu a partida!")
+
             if st.button("Jogar Novamente"):
                 resetar_estado()
             return
@@ -185,19 +199,35 @@ def main():
             atual_nome = st.session_state.nome_jogador1 if st.session_state.jogador_atual == 1 else st.session_state.nome_jogador2
             st.subheader(f"Vez de: {atual_nome}")
             
-            with st.form("formulario_jogada"):
-                opcoes_pilha = [i+1 for i, p in enumerate(st.session_state.pilhas) if p > 0]
-                escolha = st.selectbox("Selecione a pilha:", opcoes_pilha)
-                limite = st.session_state.pilhas[escolha-1]
-                quantidade = st.number_input("Quantas bolinhas deseja retirar?", 1, limite, 1)
+            # Usamos um container para garantir que a interface se mantenha organizada
+            cont_jogada = st.container()
+            with cont_jogada:
+                # 1. Primeiro selecionamos a pilha
+                pilhas_disponiveis = [i+1 for i, p in enumerate(st.session_state.pilhas) if p > 0]
+                escolha = st.selectbox("Selecione a pilha:", pilhas_disponiveis, key="escolha_pilha")
                 
-                if st.form_submit_button("Confirmar Jogada"):
-                    st.session_state.pilhas[escolha-1] -= quantidade
+                # 2. Calculamos o limite baseado na escolha atual
+                idx_selecionado = escolha - 1
+                limite_atual = st.session_state.pilhas[idx_selecionado]
+                
+                # 3. O 'refresh' acontece aqui: a key do number_input muda conforme a pilha!
+                # Isso força o Streamlit a resetar o componente com o novo 'max_value'
+                quantidade = st.number_input(
+                    f"Quantas bolinhas retirar da Pilha {escolha}? (Máximo: {limite_atual})", 
+                    min_value=1, 
+                    max_value=limite_atual, 
+                    value=1,
+                    key=f"input_qtd_pilha_{escolha}" 
+                )
+                
+                confirmar = st.button("Confirmar Jogada", use_container_width=True)
+                
+                if confirmar:
+                    st.session_state.pilhas[idx_selecionado] -= quantidade
                     st.session_state.jogador_atual = 3 - st.session_state.jogador_atual
                     st.rerun()
 
-        if st.button("Encerrar e Reiniciar"):
-            resetar_estado()
+        
 
 if __name__ == "__main__":
     main()
