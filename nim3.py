@@ -61,6 +61,14 @@ def resetar_estado():
     st.rerun()
 
 def main():
+    # Esta deve ser a primeira instrução do Streamlit no script
+    st.set_page_config(
+        page_title="Jogo do Nim",
+        page_icon="🎮",
+        layout="centered",
+        initial_sidebar_state="expanded"  # Força a barra lateral a iniciar aberta
+    )
+
     st.title("🎮 Jogo do Nim - O Último Ganha")
     st.sidebar.markdown("""
     ### 📜 Regras do Jogo
